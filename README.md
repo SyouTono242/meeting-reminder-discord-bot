@@ -4,6 +4,29 @@ Yeah I was looking for a bot that reads event (and its related info) from a Goog
 
 Initially designed for the Wang Group at UofT because we're too cool (i.e., too broke) to use Slack. Posting the bot here for record. Modify it as you wish. 
 
+## Prerequisites
+- Set Up the Google Sheet
+	- The Google Sheet this bot reads from should be formatted like this:
+```csv
+Date, Time, Location, Presenter, Notes
+2025-07-11, 23:59, Tester dungeon, Tester guy, Tester guy wont present anything bc he is badass and he is free
+...
+```
+  
+- Create a Discord Bot
+  	- Go to [Discord Developer Portal](https://discord.com/developers/applications) to create the bot
+  	- Add bot and enable `MESSAGE CONTENT INTENT`
+  	- Go to OAuth2 and give it the permission to `Send Messages` and `Mention Everyone`
+  	- Copy the generated URL and use it to invite the bot to your server
+- Setup Google Sheets and Google Drive API
+	- Create a Google Cloud Project: https://console.cloud.google.com/
+ 	- Enable the Google Sheets API and Google Drive API
+  	- Create a Service Account
+  	- Create a JSON Key, save it, and later supply its path as your `<google_service_account_credential_file_name>` in the `config.json` file below
+   	- Save the service account email (e.g., `discord-bot-reader@your-project.iam.gserviceaccount.com`)
+- Share Your Google Sheet with the Service Account Email
+	- Add your service account email with Viewer access to the Google Sheet
+
 ## Running the bot locally
 On your local machine, run the bot with
 ```bash
@@ -23,12 +46,6 @@ with `config.json` file defined like this:
 }
 ```
 
-The Google Sheet this bot reads from should be formatted like this:
-```csv
-Date, Time, Location, Presenter, Notes
-2025-07-11, 23:59, Tester dungeon, Tester guy, Tester guy wont present anything bc he is badass and he is free
-...
-```
 
 ## Demo
 <img width="551" height="192" alt="image" src="https://github.com/user-attachments/assets/c6ad0ef1-748d-476d-9831-347b37fcc589" />
