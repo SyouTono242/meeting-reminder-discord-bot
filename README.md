@@ -14,6 +14,7 @@ with `config.json` file defined like this:
 {
 	"discord_token": <discord_token>,
 	"channel_id": <discord_channel_id>,
+	"mention_role_id": <discord_role_id_to_mention>,
 	"google_sheet_name": <preauthorized_google_sheet_name>,
 	"spreadsheet_range": "Sheet1!A1:Z",
 	"timezone": "America/Toronto",
@@ -25,6 +26,11 @@ with `config.json` file defined like this:
 The Google Sheet this bot reads from should be formatted like this:
 ```csv
 Date, Time, Location, Presenter, Notes
-2025-07-16, 13:30, Donnelly 11th floor, Lucky lab member A, A will present the space
+2025-07-11, 23:59, Tester dungeon, Tester guy, Tester guy wont present anything bc he is badass and he is free
+...
 ```
+
+## Demo
+<img width="551" height="192" alt="image" src="https://github.com/user-attachments/assets/c6ad0ef1-748d-476d-9831-347b37fcc589" />
+
 
