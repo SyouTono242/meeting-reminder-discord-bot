@@ -7,7 +7,7 @@ Initially designed for the Wang Group at UofT because we're too cool (i.e., too 
 ## Running the bot locally
 On your local machine, run the bot with
 ```bash
-python lab_meeting_reminder_bot.py --config config.json
+python reminder_bot.py --config config.json
 ```
 with `config.json` file defined like this:
 ```json
