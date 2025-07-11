@@ -21,11 +21,13 @@ with open(args.config, 'r') as f:
 
 DISCORD_TOKEN = config["discord_token"]
 CHANNEL_ID = config["channel_id"]
+MENTION_ROLE_ID = config["mention_role_id"]
 SHEET_NAME = config["google_sheet_name"]
 SPREADSHEET_RANGE = config["spreadsheet_range"]
 TIMEZONE = config["timezone"]
 SERVICE_ACCOUNT_FILE = config["service_account_file"]
 DATE_FORMAT = config["date_format"]
+
 
 
 # === Google Sheets Setup ===
@@ -41,7 +43,14 @@ scheduler = AsyncIOScheduler(timezone=TIMEZONE)
 
 
 def get_next_meeting():
-    rows = sheet.get_all_values()[1:]
+    # Returns: 
+    #   headers: list of column headers 
+    #   row: list of metainfo of the closest meeting in the future
+    
+    all_values = sheet.get_all_values()
+    headers = all_values[0]
+    rows = all_values[1:]
+    
     now = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
 
     upcoming = []
@@ -58,7 +67,9 @@ def get_next_meeting():
         return None
 
     upcoming.sort()
-    return upcoming[0][0], upcoming[0][1]
+    row = upcoming[0][1]
+    
+    return headers, row
 
 async def send_reminder():
     channel = client_bot.get_channel(CHANNEL_ID)
@@ -66,28 +77,33 @@ async def send_reminder():
         print("Channel not found.")
         return
 
-    next_meeting = get_next_meeting()
-    if not next_meeting:
+    result = get_next_meeting()
+    if not result:
         await channel.send("No upcoming meetings found in the Google Sheet. Update it or ask Yiran to kill the bot plz")
         return
 
-    meeting_date = next_meeting[0]
-    date_str, time, location, presenter, notes = next_meeting[1]
+    headers, row = result
+    
+    try:
+        meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
+    except ValueError:
+        print(f"Invalid date format in sheet: {row[0]}")
+        return
     
     # Check and send reminders only 1 day before the meeting happens
     now = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
     if (meeting_date - now).days != 1:
-        print(f"No meeting tomorrow. Next meeting is on {date_str}")
+        print(f"No meeting tomorrow. Next meeting is on {meeting_date}")
         return
     
-    message = (
-        f"@Group Member Hi all. Reminder that we have a group meeting tomorrow.\n\n"
-        f"**Date:** {date_str}\n"
-        f"**Time:** {time}\n"
-        f"**Location:** {location}\n"
-        f"**Presenter(s):** {presenter}\n"
-        f"**Notes:** {notes}"
-    )
+    print(f"Sending reminder for meeting on {meeting_date} to channel {CHANNEL_ID}...")
+    
+    fields = []
+    for header, value in zip(headers, row):
+        if value.strip():
+            fields.append(f"**{header.strip()}:** {value.strip()}")
+            
+    message = f"<@&{str(MENTION_ROLE_ID)}> Hi all. Reminder that we have a {SHEET_NAME} event tomorrow.\n\n" + "\n".join(fields)
 
     await channel.send(message)
 
