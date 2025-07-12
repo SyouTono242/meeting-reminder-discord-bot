@@ -1,10 +1,18 @@
-# Custom Discord Bot Mostly for Sending Lab Meeting Reminders
+# Discord Bot Mostly for Sending Lab Meeting Reminders
 
 Yeah I was looking for a bot that reads event (and its related info) from a Google Sheet and posts weekly reminders but couldn't find any... so here it is.
 
 Initially designed for the Wang Group at UofT because we're too cool (i.e., too broke) to use Slack. Posting the bot here for record. Modify it as you wish. 
 
-## Prerequisites
+
+## Demo
+```bash
+python reminder_bot.py --config config.json --test
+```
+<img width="653" height="316" alt="demo" src="https://github.com/SyouTono242/meeting-reminder-discord-bot/blob/58d6bef54ed949f435b4668588ef0e9faaf74959/demo.png" />
+
+
+## Prereqs for setting up your own bot
 - Set Up the Google Sheet
 	- The Google Sheet this bot reads from should be formatted like this:
 ```csv
@@ -27,7 +35,8 @@ Date, Time, Location, Presenter, Notes
 - Share Your Google Sheet with the Service Account Email
 	- Add your service account email with Viewer access to the Google Sheet
 
-## Running the bot locally
+
+## Running the bot
 On your local machine, run the bot with
 ```bash
 python reminder_bot.py --config config.json
@@ -39,15 +48,10 @@ with `config.json` file defined like this:
 	"channel_id": <discord_channel_id>,
 	"mention_role_id": <discord_role_id_to_mention>,
 	"google_sheet_name": <preauthorized_google_sheet_name>,
-	"spreadsheet_range": "Sheet1!A1:Z",
+	"google_sheet_viewer_link": <google_sheet_link_with_viewer_access>,
 	"timezone": "America/Toronto",
 	"service_account_file": <google_service_account_credential_file_name>,
-	"date_format": "%Y-%m-%d"
+	"date_format": "%Y-%m-%d",
+	"test_channel_id": <discord_channel_to_run_tests_on>
 }
 ```
-
-
-## Demo
-<img width="551" height="192" alt="image" src="https://github.com/user-attachments/assets/c6ad0ef1-748d-476d-9831-347b37fcc589" />
-
-
