@@ -14,16 +14,17 @@ from apscheduler.triggers.cron import CronTrigger
 # === CONFIGURATION ===
 parser = argparse.ArgumentParser(description="Lab Meeting Reminder Bot")
 parser.add_argument('--config', type=str, default="config.json", help="Path to config JSON file")
+parser.add_argument('--test', action='store_true', help="Run in test mode and exit")
 args = parser.parse_args()
 
 with open(args.config, 'r') as f:
     config = json.load(f)
 
 DISCORD_TOKEN = config["discord_token"]
-CHANNEL_ID = config["channel_id"]
+CHANNEL_ID = config["test_channel_id"] if args.test else config["channel_id"]
 MENTION_ROLE_ID = config["mention_role_id"]
 SHEET_NAME = config["google_sheet_name"]
-SPREADSHEET_RANGE = config["spreadsheet_range"]
+SHEET_LINK = config["google_sheet_viewer_link"]
 TIMEZONE = config["timezone"]
 SERVICE_ACCOUNT_FILE = config["service_account_file"]
 DATE_FORMAT = config["date_format"]
@@ -71,7 +72,7 @@ def get_next_meeting():
     
     return headers, row
 
-async def send_reminder():
+async def send_reminder(mention=True):
     channel = client_bot.get_channel(CHANNEL_ID)
     if not channel:
         print("Channel not found.")
@@ -103,7 +104,8 @@ async def send_reminder():
         if value.strip():
             fields.append(f"**{header.strip()}:** {value.strip()}")
             
-    message = f"<@&{str(MENTION_ROLE_ID)}> Hi all. Reminder that we have a {SHEET_NAME} event tomorrow.\n\n" + "\n".join(fields)
+    prefix = f"<@&{str(MENTION_ROLE_ID)}> Hi all. " if mention else "Tester tester. "
+    message = prefix + f"Reminder that we have a {SHEET_NAME} event tomorrow.\n\n" + "\n".join(fields) + f"\n\nMeeting calendar: {SHEET_LINK}"
 
     await channel.send(message)
 
@@ -111,7 +113,12 @@ async def send_reminder():
 async def on_ready():
     print(f"Bot logged in as {client_bot.user}")
     
-    scheduler.add_job(send_reminder, CronTrigger(hour=9, minute=0))
-    scheduler.start()
+    if args.test:
+        print("Running in test mode...")
+        await send_reminder(mention=False)
+        await client_bot.close()
+    else:
+        scheduler.add_job(send_reminder, CronTrigger(hour=9, minute=0))
+        scheduler.start()
 
 client_bot.run(DISCORD_TOKEN)
