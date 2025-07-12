@@ -30,7 +30,6 @@ SERVICE_ACCOUNT_FILE = config["service_account_file"]
 DATE_FORMAT = config["date_format"]
 
 
-
 # === Google Sheets Setup ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
@@ -46,7 +45,7 @@ scheduler = AsyncIOScheduler(timezone=TIMEZONE)
 def get_next_meeting():
     # Returns: 
     #   headers: list of column headers 
-    #   row: list of metainfo of the closest meeting in the future
+    #   row: list of metainfo of the upcoming meetings sorted by date
     
     all_values = sheet.get_all_values()
     headers = all_values[0]
@@ -73,6 +72,9 @@ def get_next_meeting():
     return headers, row
 
 async def send_reminder(mention=True):
+    now_datetime = datetime.datetime.now(pytz.timezone(TIMEZONE))
+    print(f"Scheduler triggered on {now_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
+    
     channel = client_bot.get_channel(CHANNEL_ID)
     if not channel:
         print("Channel not found.")
@@ -84,20 +86,14 @@ async def send_reminder(mention=True):
         return
 
     headers, row = result
-    
-    try:
-        meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
-    except ValueError:
-        print(f"Invalid date format in sheet: {row[0]}")
-        return
+    meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
     
     # Check and send reminders only 1 day before the meeting happens
-    now = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
-    if (meeting_date - now).days != 1:
+    if (meeting_date - now_datetime.date()).days != 1:
         print(f"No meeting tomorrow. Next meeting is on {meeting_date}")
         return
     
-    print(f"Sending reminder for meeting on {meeting_date} to channel {CHANNEL_ID}...")
+    print(f"Sending reminder for meeting on {meeting_date} to channel {channel.name}...")
     
     fields = []
     for header, value in zip(headers, row):
