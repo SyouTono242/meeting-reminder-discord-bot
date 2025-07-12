@@ -6,11 +6,21 @@ Initially designed for the Wang Group at UofT because we're too cool (i.e., too 
 
 
 ## Demo
+Input:
 ```bash
 python reminder_bot.py --config config.json --test
 ```
 <img width="653" height="316" alt="demo" src="https://github.com/SyouTono242/meeting-reminder-discord-bot/blob/58d6bef54ed949f435b4668588ef0e9faaf74959/demo.png" />
 
+Output log:
+```bash
+2025-07-12 19:00:48 INFO     discord.client logging in using static token
+2025-07-12 19:00:49 INFO     discord.gateway Shard ID None has connected to Gateway (Session ID: ###).
+Bot logged in as ###
+Running in test mode...
+Scheduler triggered on 2025-07-12 19:00:51
+Sending reminder for meeting on 2025-07-13 to channel tester-channel...
+```
 
 ## Prereqs for setting up your own bot
 - Set Up the Google Sheet
