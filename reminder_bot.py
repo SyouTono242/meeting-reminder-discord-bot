@@ -89,7 +89,7 @@ async def send_reminder(event_config: dict,
     print(f"[{event_config['name']}] reminder triggered on {now_datetime.strftime('%Y-%m-%d %H:%M:%S')}")
     
     channel_id = TEST_CHANNEL_ID if test_mode else event_config["channel_id"]
-    mention_role_id = None if test_mode else event_config.get("mention_role_id", None)
+    mention_role = None if test_mode else event_config.get("mention_role", None)
     days_before = event_config.get("days_before", 1)
     
     channel = client_bot.get_channel(channel_id)
@@ -110,7 +110,6 @@ async def send_reminder(event_config: dict,
     headers, row = result
     meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
     
-    # Check and send reminders only 1 day before the meeting happens
     if (meeting_date - now_datetime.date()).days != days_before:
         print(f"[{event_config['name']}] No event in {days_before} days (next is {meeting_date})")
         return
@@ -123,8 +122,8 @@ async def send_reminder(event_config: dict,
     ]
             
     prefix = (
-        f"<@&{str(mention_role_id)}> Hi all. "
-        if mention_role_id else "Tester tester. "
+        f"{mention_role} Hi all. "
+        if mention_role else "Tester tester. "
     )
     
     message = (
