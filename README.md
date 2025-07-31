@@ -44,7 +44,7 @@ with `config.json` file defined like this:
       "google_sheet_viewer_link": "https://docs.google.com/sheet1",
       "spreadsheet_range": "Sheet1!A2:Z",
       "channel_id": 987654321012345678,
-      "mention_role_id": 112233445566778899,
+      "mention_role": "<@&112233445566778899>",
       "days_before": 1
     },
     {
@@ -53,6 +53,7 @@ with `config.json` file defined like this:
       "google_sheet_viewer_link": "https://docs.google.com/sheet2",
       "spreadsheet_range": "Schedule!A2:Z",
       "channel_id": 888888888888888888,
+      "mention_role": "@everyone",
       "days_before": 2
     }
   ]
