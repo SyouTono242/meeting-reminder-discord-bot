@@ -104,7 +104,8 @@ async def send_reminder(event_config: dict,
     )
     
     if not result:
-        await channel.send(f"No upcoming meetings found in the Google Sheet {event_config['google_sheet_name']}.")
+        # await channel.send(f"No upcoming meetings found in the Google Sheet {event_config['google_sheet_name']}.")
+        print(f"No upcoming meetings found in the Google Sheet {event_config['google_sheet_name']}.")
         return
 
     headers, row = result
