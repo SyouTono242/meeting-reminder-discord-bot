@@ -13,6 +13,7 @@ from apscheduler.triggers.cron import CronTrigger
 parser = argparse.ArgumentParser(description="Lab Event Reminder Bot")
 parser.add_argument('--config', type=str, default="config.json", help="Path to config JSON file")
 parser.add_argument('--test', action='store_true', help="Run in test mode and exit")
+parser.add_argument('--force', action='store_true', help="Force send reminders of all most recent upcoming events now")
 args = parser.parse_args()
 
 with open(args.config, 'r') as f:
@@ -77,7 +78,8 @@ def get_next_meeting(sheet_name: str,
 
 
 async def send_reminder(event_config: dict, 
-                        test_mode: bool = False):
+                        test_mode: bool = False,
+                        force_send: bool = False):
     """Gets meeting info from google sheets and sends reminder to discord
 
     Args:
@@ -110,12 +112,14 @@ async def send_reminder(event_config: dict,
 
     headers, row = result
     meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
+
+    actual_days_before = (meeting_date - now_datetime.date()).days
     
-    if (meeting_date - now_datetime.date()).days != days_before:
+    if not force_send and actual_days_before != days_before:
         print(f"[{event_config['name']}] No event in {days_before} days (next is {meeting_date})")
         return
     
-    print(f"Sending reminder for meeting [{event_config['name']}] on {meeting_date} to channel {channel.name}...")
+    print(f"Sending reminder for event [{event_config['name']}] on {meeting_date} to channel {channel.name}...")
     
     fields = [
         f"**{header.strip()}:** {value.strip()}"
@@ -124,12 +128,15 @@ async def send_reminder(event_config: dict,
             
     prefix = (
         f"{mention_role} Hi all. "
-        if mention_role else "Tester tester. "
+        if mention_role else "Hi there. "
     )
+
+    if force_send:
+        prefix += "Looks like someone forgot to turn the bot on after a break and are now making up for the missed reminders = =\n\n"
     
     message = (
         prefix +
-        f"Reminder that we have a **{event_config['name']}** event in {days_before} day(s).\n\n" +
+        f"Reminder that we have a **{event_config['name']}** event in {actual_days_before} day(s).\n\n" +
         "\n".join(fields) +
         f"\n\nMeeting calendar: {event_config['google_sheet_viewer_link']}"
     )
@@ -141,11 +148,15 @@ async def send_reminder(event_config: dict,
 async def on_ready():
     print(f"Bot logged in as {client_bot.user}")
     
-    if args.test:
-        print("Running in test mode...")
+    # Test mode: Send now, to test channels
+    # Now mode: Send now, to regular channels, with special prefix
+    # If both are supplied: Send now, to test channels, with special prefix
+    if args.test or args.force:
+        print(f"Running in test mode: {args.test}, force mode: {args.force}")
         for event in EVENT_RESOURCES:
-            await send_reminder(event, test_mode=True)
+            await send_reminder(event, test_mode=args.test, force_send=args.force)
         await client_bot.close()
+    # Regular mode: Triggered at 9am daily, to regular channels
     else:
         for event in EVENT_RESOURCES:
             scheduler.add_job(
