@@ -22,7 +22,6 @@ with open(args.config, 'r') as f:
 DISCORD_TOKEN = config["discord_token"]
 TIMEZONE = config["timezone"]
 SERVICE_ACCOUNT_FILE = config["service_account_file"]
-DATE_FORMAT = config["date_format"]
 TEST_CHANNEL_ID = config["test_channel_id"]
 EVENT_RESOURCES = config["event_resources"]
 
@@ -35,6 +34,32 @@ gs_client = gspread.authorize(credentials)
 intents = discord.Intents.default()
 client_bot = discord.Client(intents=intents)
 scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+
+def add_year_if_necessary(date_str: str,
+                    date_format: str):
+    """Check if year is specified in the date_format, and if not,
+    modify the year of dates in formats with only month and date to the most recent upcoming date
+
+    Args:
+        date_str (str): Input date to modify
+        date_format (str): Format of the input date
+
+    Returns:
+        (datetime): Input date in the most recent upcoming year
+    """
+    input_date = datetime.datetime.strptime(date_str, date_format).date()
+
+    if "%Y" in date_format or "%y" in date_format:
+        return input_date
+
+    today = datetime.datetime.now(pytz.timezone(TIMEZONE)).date()
+
+    parsed_date = input_date.replace(year=today.year)
+
+    if parsed_date < today:
+        parsed_date - parsed_date.replace(year = today.year + 1)
+
+    return parsed_date
 
 
 def get_next_meeting(sheet_name: str, 
@@ -64,11 +89,12 @@ def get_next_meeting(sheet_name: str,
         try:
             # Assuming the first column to be date
             date_str = row[0].strip()
-            meeting_date = datetime.datetime.strptime(date_str, DATE_FORMAT).date()
+            meeting_date = add_year_if_necessary(date_str, date_format)
+
             if meeting_date > now:
                 upcoming.append((meeting_date, row))
-        except Exception:
-            continue
+        except Exception as e:
+            print(f"Error occurred iteratng events from {sheet_name}:", e)
 
     if not upcoming:
         return None
@@ -102,7 +128,7 @@ async def send_reminder(event_config: dict,
     result = get_next_meeting(
         event_config["google_sheet_name"],
         event_config["spreadsheet_range"],
-        DATE_FORMAT
+        event_config["date_format"]
     )
     
     if not result:
@@ -111,7 +137,7 @@ async def send_reminder(event_config: dict,
         return
 
     headers, row = result
-    meeting_date = datetime.datetime.strptime(row[0].strip(), DATE_FORMAT).date()
+    meeting_date = meeting_date = add_year_if_necessary(row[0].strip(), event_config["date_format"])
 
     actual_days_before = (meeting_date - now_datetime.date()).days
     
@@ -132,7 +158,7 @@ async def send_reminder(event_config: dict,
     )
 
     if force_send:
-        prefix += "Looks like someone forgot to turn the bot on after a break and are now making up for the missed reminders = =\n\n"
+        prefix += "Force-sending all upcoming events now...\n\n"
     
     message = (
         prefix +

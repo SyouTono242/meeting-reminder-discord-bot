@@ -20,12 +20,18 @@ Output log:
 2025-07-31 01:35:26 INFO     discord.client logging in using static token
 2025-07-31 01:35:26 INFO     discord.gateway Shard ID None has connected to Gateway (Session ID: ###).
 Bot logged in as ###
-Running in test mode...
+Running in test mode: True, force mode: False
 [Event 1] reminder triggered on 2025-07-31 01:35:29
 [Event 1] No event in 1 days (next is 2025-08-06)
 [Event 2] reminder triggered on 2025-07-31 01:35:30
 Sending reminder for meeting [Event 2] on 2025-08-04 to channel tester-channel...
 ```
+
+## Options the bot takes
+
+- **--config**: Path to the config JSON file, default to "./config.json"
+- **--test**: Run in test mode, i.e., messages will be sent to the test channel as specified in the config file, and it will not mention anyone
+- **--force**: Force to send reminders to the most recent upcoming events from all sheets listed in the config file. Ignores "days_before"
 
 ## Running the bot
 
@@ -49,7 +55,6 @@ Otherwise if you have to make your own config files:
       "discord_token": "your_token",
       "timezone": "America/Toronto",
       "service_account_file": "credentials.json",
-      "date_format": "%Y-%m-%d",
       "test_channel_id": 123456789012345678,
       "event_sources": [
         {
@@ -57,6 +62,7 @@ Otherwise if you have to make your own config files:
           "google_sheet_name": "Event 1 Sheet",
           "google_sheet_viewer_link": "https://docs.google.com/sheet1",
           "spreadsheet_range": "Sheet1!A2:Z",
+          "date_format": "%Y-%m-%d",
           "channel_id": 987654321012345678,
           "mention_role": "<@&112233445566778899>",
           "days_before": 1
@@ -66,6 +72,7 @@ Otherwise if you have to make your own config files:
           "google_sheet_name": "Event 1 Sheet",
           "google_sheet_viewer_link": "https://docs.google.com/sheet2",
           "spreadsheet_range": "Schedule!A2:Z",
+          "date_format": "%Y-%m-%d",
           "channel_id": 888888888888888888,
           "mention_role": "@everyone",
           "days_before": 2
