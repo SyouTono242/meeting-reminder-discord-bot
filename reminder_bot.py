@@ -188,6 +188,7 @@ async def on_ready():
             scheduler.add_job(
                 send_reminder,
                 trigger=CronTrigger(hour=9, minute=0),
+                misfire_grace_time=60,
                 args=[event],
                 kwargs={"test_mode": False},
                 name=f"Reminder: {event['name']}"
