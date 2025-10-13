@@ -7,7 +7,9 @@ import gspread
 import pytz
 from oauth2client.service_account import ServiceAccountCredentials
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.cron import CronTrigger
+
 
 # === CONFIGURATION ===
 parser = argparse.ArgumentParser(description="Lab Event Reminder Bot")
@@ -33,7 +35,11 @@ gs_client = gspread.authorize(credentials)
 # === Discord Setup ===
 intents = discord.Intents.default()
 client_bot = discord.Client(intents=intents)
-scheduler = AsyncIOScheduler(timezone=TIMEZONE)
+scheduler = AsyncIOScheduler(timezone=TIMEZONE,
+    job_defaults={
+        "coalesce": True,
+        "max_instances": 1
+    })
 
 def add_year_if_necessary(date_str: str,
                     date_format: str):
@@ -87,12 +93,14 @@ def get_next_meeting(sheet_name: str,
     
     for row in rows:
         try:
-            # Assuming the first column to be date
-            date_str = row[0].strip()
-            meeting_date = add_year_if_necessary(date_str, date_format)
+            # Pass empty rows
+            if len(row) > 1:
+                # Assuming the first column to be date
+                date_str = row[0].strip()
+                meeting_date = add_year_if_necessary(date_str, date_format)
 
-            if meeting_date > now:
-                upcoming.append((meeting_date, row))
+                if meeting_date > now:
+                    upcoming.append((meeting_date, row))
         except Exception as e:
             print(f"Error occurred iteratng events from {sheet_name}:", e)
 
@@ -167,6 +175,7 @@ async def send_reminder(event_config: dict,
         f"\n\nMeeting calendar: {event_config['google_sheet_viewer_link']}"
     )
     
+    # TODO: Uncomment to send messages
     await channel.send(message)
 
 
@@ -175,24 +184,29 @@ async def on_ready():
     print(f"Bot logged in as {client_bot.user}")
     
     # Test mode: Send now, to test channels
-    # Now mode: Send now, to regular channels, with special prefix
+    # Force mode: Send now, to regular channels, with special prefix
     # If both are supplied: Send now, to test channels, with special prefix
     if args.test or args.force:
         print(f"Running in test mode: {args.test}, force mode: {args.force}")
         for event in EVENT_RESOURCES:
             await send_reminder(event, test_mode=args.test, force_send=args.force)
         await client_bot.close()
+
     # Regular mode: Triggered at 9am daily, to regular channels
     else:
         for event in EVENT_RESOURCES:
-            scheduler.add_job(
-                send_reminder,
-                trigger=CronTrigger(hour=9, minute=0),
-                misfire_grace_time=60,
-                args=[event],
-                kwargs={"test_mode": False},
-                name=f"Reminder: {event['name']}"
-            )
-        scheduler.start()
+            job_id = f"reminder_{event['name']}"
+            if scheduler.get_job(job_id) is None:
+                scheduler.add_job(
+                    func=send_reminder,
+                    trigger=CronTrigger(hour=9, minute=0),
+                    misfire_grace_time=60,
+                    args=[event],
+                    kwargs={"test_mode": False, "force_send": False},
+                    replace_existing=True,
+                    name=f"Reminder: {event['name']}"
+                )
+        if not scheduler.running:
+            scheduler.start()
 
 client_bot.run(DISCORD_TOKEN)
