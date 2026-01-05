@@ -27,6 +27,9 @@ SERVICE_ACCOUNT_FILE = config["service_account_file"]
 TEST_CHANNEL_ID = config["test_channel_id"]
 EVENT_RESOURCES = config["event_resources"]
 
+# === Global flags ===
+_scheduled = False      # Makes sure only scheduling work dont get duplicated on reconnect
+
 # === Google Sheets Setup ===
 scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 credentials = ServiceAccountCredentials.from_json_keyfile_name(SERVICE_ACCOUNT_FILE, scope)
@@ -63,7 +66,7 @@ def add_year_if_necessary(date_str: str,
     parsed_date = input_date.replace(year=today.year)
 
     if parsed_date < today:
-        parsed_date - parsed_date.replace(year = today.year + 1)
+        parsed_date = parsed_date.replace(year = today.year + 1)
 
     return parsed_date
 
@@ -175,13 +178,17 @@ async def send_reminder(event_config: dict,
         f"\n\nMeeting calendar: {event_config['google_sheet_viewer_link']}"
     )
     
-    # TODO: Uncomment to send messages
     await channel.send(message)
 
 
 @client_bot.event
 async def on_ready():
     print(f"Bot logged in as {client_bot.user}")
+    
+    global _scheduled
+    if _scheduled:
+        return
+    _scheduled = True
     
     # Test mode: Send now, to test channels
     # Force mode: Send now, to regular channels, with special prefix
@@ -196,16 +203,16 @@ async def on_ready():
     else:
         for event in EVENT_RESOURCES:
             job_id = f"reminder_{event['name']}"
-            if scheduler.get_job(job_id) is None:
-                scheduler.add_job(
-                    func=send_reminder,
-                    trigger=CronTrigger(hour=9, minute=0),
-                    misfire_grace_time=60,
-                    args=[event],
-                    kwargs={"test_mode": False, "force_send": False},
-                    replace_existing=True,
-                    name=f"Reminder: {event['name']}"
-                )
+            scheduler.add_job(
+                id=job_id,
+                func=send_reminder,
+                trigger=CronTrigger(hour=9, minute=0),
+                misfire_grace_time=60,
+                args=[event],
+                kwargs={"test_mode": False, "force_send": False},
+                replace_existing=True,
+                name=f"Reminder: {event['name']}"
+            )
         if not scheduler.running:
             scheduler.start()
 
